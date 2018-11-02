@@ -1,19 +1,3 @@
-# bitbuf
-
-A readable bitstream. Create from a byte slice, and read through the stream
-bit by bit.
-
-Supports the following read types:
-* `byte`, `[]byte`
-* `int8`, `int16`, `int32`, `int64`
-* `uint8`, `uint16`, `uint32`, `uint64`
-* `float32`, `float64`
-* `string` (of known length, or until null terminator)
-* `bits` (returned as `[]byte`
-
-
-### Usage
-```go
 package main
 
 import (
@@ -62,4 +46,4 @@ func main() {
 	log.Println(buf.ReadInt8())
 	log.Println(buf.ReadUint32())
 }
-```
+
