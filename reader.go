@@ -13,6 +13,10 @@ type Reader struct {
 	currentBit       uint
 }
 
+func (buf *Reader) Reset() {
+	buf.currentBit = 0
+}
+
 func (buf *Reader) ReadUint8() (uint8, error) {
 	v,err := buf.readInternal(8)
 	return uint8(v),err
