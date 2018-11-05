@@ -17,13 +17,23 @@ type Writer struct {
 func (writer *Writer) Data() []byte {
 	return writer.internalBuffer[:len(writer.internalBuffer)-4]
 }
+func (writer *Writer) BitsWritten() uint {
+	return writer.currentBit
+}
 
 func (writer *Writer) BytesWritten() int {
 	return int(math.Ceil(float64(writer.currentBit) / 8))
 }
 
+func (writer *Writer) Seek(position uint) {
+	if writer.totalBits > position {
+		writer.currentBit = writer.totalBits
+	}
+	writer.currentBit = position
+}
+
 func (writer *Writer) WriteByte(val byte) {
-	writer.writeUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteBytes(val []byte) {
@@ -33,27 +43,27 @@ func (writer *Writer) WriteBytes(val []byte) {
 }
 
 func (writer *Writer) WriteInt8(val int8) {
-	writer.writeSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteUint8(val uint8) {
-	writer.writeUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteInt16(val int16) {
-	writer.writeSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteUint16(val uint16) {
-	writer.writeUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteInt32(val int32) {
-	writer.writeSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteUint32(val uint32) {
-	writer.writeUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteInt64(val int64) {
@@ -63,8 +73,8 @@ func (writer *Writer) WriteInt64(val int64) {
 func (writer *Writer) WriteUint64(val uint64) {
 	raw := make([]byte, 8)
 	binary.LittleEndian.PutUint64(raw, uint64(val))
-	writer.writeUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[:4])), uint(unsafe.Sizeof(val)) << 3)
-	writer.writeUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[4:8])), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[:4])), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[4:8])), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteString(val string) {
@@ -73,7 +83,7 @@ func (writer *Writer) WriteString(val string) {
 	}
 }
 
-func (writer *Writer) writeUnsignedBitInt32(data uint32, numBits uint) {
+func (writer *Writer) WriteUnsignedBitInt32(data uint32, numBits uint) {
 	// Force the sign-extension bit to be correct even in the case of overflow.
 	//nValue := uint(data)
 	//nPreserveBits := (0x7FFFFFFF >> (32 - numBits))
@@ -84,7 +94,7 @@ func (writer *Writer) writeUnsignedBitInt32(data uint32, numBits uint) {
 	writer.writeInternal(uint32(data), numBits, false)
 }
 
-func (writer *Writer) writeSignedBitInt32(data int32, numBits uint) {
+func (writer *Writer) WriteSignedBitInt32(data int32, numBits uint) {
 	// Force the sign-extension bit to be correct even in the case of overflow.
 	nValue := int(data)
 	nPreserveBits := (0x7FFFFFFF >> (32 - numBits))

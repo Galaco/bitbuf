@@ -13,6 +13,21 @@ type Reader struct {
 	currentBit       uint
 }
 
+
+// Returns size (in bits, NOT bytes)
+func (buf *Reader) Size() uint {
+	return buf.totalBits
+}
+
+
+func (buf *Reader) Data() []byte {
+	return buf.internalBuffer.Bytes()
+}
+
+func (buf *Reader) BitsRead() uint {
+	return buf.currentBit
+}
+
 func (buf *Reader) Reset() {
 	buf.currentBit = 0
 }
