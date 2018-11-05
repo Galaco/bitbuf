@@ -23,7 +23,13 @@ func (writer *Writer) BytesWritten() int {
 }
 
 func (writer *Writer) WriteByte(val byte) {
-	writer.writeSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.writeUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+}
+
+func (writer *Writer) WriteBytes(val []byte) {
+	for _,b := range val {
+		writer.WriteByte(b)
+	}
 }
 
 func (writer *Writer) WriteInt8(val int8) {
@@ -48,6 +54,17 @@ func (writer *Writer) WriteInt32(val int32) {
 
 func (writer *Writer) WriteUint32(val uint32) {
 	writer.writeUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+}
+
+func (writer *Writer) WriteInt64(val int64) {
+	writer.WriteUint64(uint64(val))
+}
+
+func (writer *Writer) WriteUint64(val uint64) {
+	raw := make([]byte, 8)
+	binary.LittleEndian.PutUint64(raw, uint64(val))
+	writer.writeUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[:4])), uint(unsafe.Sizeof(val)) << 3)
+	writer.writeUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[4:8])), uint(unsafe.Sizeof(val)) << 3)
 }
 
 func (writer *Writer) WriteString(val string) {
