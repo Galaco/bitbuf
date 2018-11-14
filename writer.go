@@ -15,7 +15,10 @@ type Writer struct {
 }
 
 func (writer *Writer) Data() []byte {
-	return writer.internalBuffer[:len(writer.internalBuffer)-4]
+	if writer.BytesWritten() == 0 {
+		return make([]byte, 0)
+	}
+	return writer.internalBuffer[:writer.BytesWritten()]
 }
 func (writer *Writer) BitsWritten() uint {
 	return writer.currentBit

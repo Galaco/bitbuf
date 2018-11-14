@@ -19,6 +19,9 @@ func (buf *Reader) Size() uint {
 	return buf.totalBits
 }
 
+func (buf *Reader) Seek(offset int) {
+	buf.currentBit = offset
+}
 
 func (buf *Reader) Data() []byte {
 	return buf.internalBuffer.Bytes()
@@ -117,11 +120,6 @@ func (buf *Reader) ReadBits(numBits uint) ([]byte, error) {
 
 	// align output to dword boundary
 	idx := 0
-	//for /* (size_t)pOut & 3) != 0 &&  */nBitsLeft >= 8 {
-	//	retVal[idx],_ = buf.ReadByte()
-	//	idx++
-	//	nBitsLeft -= 8
-	//}
 
 	// read dwords
 	idx = 0
@@ -153,6 +151,16 @@ func (buf *Reader) ReadBits(numBits uint) ([]byte, error) {
 	}
 
 	return retVal, nil
+}
+
+func (buf *Reader) ReadUint32Bits(numBits uint) (uint32,error) {
+	return buf.readInternal(numBits)
+}
+
+func (buf *Reader) ReadOneBit() bool {
+	value := uint8(buf.internalBuffer.Bytes()[buf.currentBit >> 3] >> (buf.currentBit & 7))
+	buf.currentBit++
+	return (value & 1) != 0
 }
 
 
