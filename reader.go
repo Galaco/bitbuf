@@ -20,7 +20,7 @@ func (buf *Reader) Size() uint {
 }
 
 func (buf *Reader) Seek(offset int) {
-	buf.currentBit = offset
+	buf.currentBit = uint(offset)
 }
 
 func (buf *Reader) Data() []byte {
@@ -155,6 +155,11 @@ func (buf *Reader) ReadBits(numBits uint) ([]byte, error) {
 
 func (buf *Reader) ReadUint32Bits(numBits uint) (uint32,error) {
 	return buf.readInternal(numBits)
+}
+
+func (buf *Reader) ReadInt32Bits(numBits uint) (int32,error) {
+	v,err := buf.readInternal(numBits)
+	return int32(v),err
 }
 
 func (buf *Reader) ReadOneBit() bool {
