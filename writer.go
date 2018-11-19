@@ -12,6 +12,7 @@ type Writer struct {
 	internalBuffer []byte
 	totalBits uint
 	currentBit uint
+	bitsWritten uint
 }
 
 func (writer *Writer) Data() []byte {
@@ -20,12 +21,13 @@ func (writer *Writer) Data() []byte {
 	}
 	return writer.internalBuffer[:writer.BytesWritten()]
 }
+
 func (writer *Writer) BitsWritten() uint {
-	return writer.currentBit
+	return writer.bitsWritten
 }
 
 func (writer *Writer) BytesWritten() int {
-	return int(math.Ceil(float64(writer.currentBit) / 8))
+	return int(math.Ceil(float64(writer.bitsWritten) / 8))
 }
 
 func (writer *Writer) Seek(position uint) {
@@ -116,6 +118,9 @@ func (writer *Writer) writeInternal(curData uint32, numBits uint, checkRange boo
 
 	iCurBitMasked := writer.currentBit & 31
 	iDWord := uint32(writer.currentBit >> 5)
+	if writer.currentBit == writer.bitsWritten {
+		writer.bitsWritten += numBits
+	}
 	writer.currentBit += numBits
 
 	// Mask in a dword.
