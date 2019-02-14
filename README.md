@@ -1,3 +1,7 @@
+[![GoDoc](https://godoc.org/github.com/Galaco/bitbuf?status.svg)](https://godoc.org/github.com/Galaco/bitbuf)
+[![Go report card](https://goreportcard.com/badge/github.com/galaco/bitbuf)](https://goreportcard.com/badge/github.com/galaco/bitbuf)
+[![Build Status](https://travis-ci.com/Galaco/bitbuf.svg?branch=master)](https://travis-ci.com/Galaco/bitbuf)
+
 # bitbuf
 
 A readable bitstream. Create from a byte slice, and read through the stream

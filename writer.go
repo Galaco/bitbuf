@@ -10,9 +10,9 @@ import (
 
 type Writer struct {
 	internalBuffer []byte
-	totalBits uint
-	currentBit uint
-	bitsWritten uint
+	totalBits      uint
+	currentBit     uint
+	bitsWritten    uint
 }
 
 func (writer *Writer) Data() []byte {
@@ -38,37 +38,37 @@ func (writer *Writer) Seek(position uint) {
 }
 
 func (writer *Writer) WriteByte(val byte) {
-	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteBytes(val []byte) {
-	for _,b := range val {
+	for _, b := range val {
 		writer.WriteByte(b)
 	}
 }
 
 func (writer *Writer) WriteInt8(val int8) {
-	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteUint8(val uint8) {
-	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteInt16(val int16) {
-	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteUint16(val uint16) {
-	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteInt32(val int32) {
-	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteSignedBitInt32(int32(val), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteUint32(val uint32) {
-	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(val), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteInt64(val int64) {
@@ -78,12 +78,12 @@ func (writer *Writer) WriteInt64(val int64) {
 func (writer *Writer) WriteUint64(val uint64) {
 	raw := make([]byte, 8)
 	binary.LittleEndian.PutUint64(raw, uint64(val))
-	writer.WriteUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[:4])), uint(unsafe.Sizeof(val)) << 3)
-	writer.WriteUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[4:8])), uint(unsafe.Sizeof(val)) << 3)
+	writer.WriteUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[:4])), uint(unsafe.Sizeof(val))<<3)
+	writer.WriteUnsignedBitInt32(uint32(binary.LittleEndian.Uint32(raw[4:8])), uint(unsafe.Sizeof(val))<<3)
 }
 
 func (writer *Writer) WriteString(val string) {
-	for _,b := range []byte(val) {
+	for _, b := range []byte(val) {
 		writer.WriteByte(b)
 	}
 }
@@ -126,8 +126,8 @@ func (writer *Writer) writeInternal(curData uint32, numBits uint, checkRange boo
 	// Mask in a dword.
 	//Assert((iDWord * 4 + sizeof(long)) <= (unsigned int)m_nDataBytes)
 	pOut := []uint32{
-		bytesToUint32(writer.internalBuffer[(iDWord*4):(iDWord*4)+4]),
-		bytesToUint32(writer.internalBuffer[(iDWord*4)+4:(iDWord*4)+8]),
+		bytesToUint32(writer.internalBuffer[(iDWord * 4) : (iDWord*4)+4]),
+		bytesToUint32(writer.internalBuffer[(iDWord*4)+4 : (iDWord*4)+8]),
 	}
 
 	// Rotate data into dword alignment
@@ -135,7 +135,7 @@ func (writer *Writer) writeInternal(curData uint32, numBits uint, checkRange boo
 
 	// Calculate bitmasks for first and second word
 	temp := uint(1 << (numBits - 1))
-	mask1 := uint32((temp * 2 - 1) << iCurBitMasked)
+	mask1 := uint32((temp*2 - 1) << iCurBitMasked)
 	mask2 := uint32((temp - 1) >> (31 - iCurBitMasked))
 
 	// Only look beyond current word if necessary (avoid access violation)
@@ -148,24 +148,23 @@ func (writer *Writer) writeInternal(curData uint32, numBits uint, checkRange boo
 	dword2 ^= (mask2 & (curData ^ dword2))
 
 	// Note reversed order of writes so that dword1 wins if mask2 == 0 && i == 0
-	binary.LittleEndian.PutUint32(writer.internalBuffer[(iDWord*4) + (i*4):(iDWord*4) + (i*4) + 4], dword2)
-	binary.LittleEndian.PutUint32(writer.internalBuffer[(iDWord*4):(iDWord*4) + 4], dword1)
+	binary.LittleEndian.PutUint32(writer.internalBuffer[(iDWord*4)+(i*4):(iDWord*4)+(i*4)+4], dword2)
+	binary.LittleEndian.PutUint32(writer.internalBuffer[(iDWord*4):(iDWord*4)+4], dword1)
 
 	return nil
 }
 
 func (writer *Writer) ensureInBounds(numBits uint) error {
-	if writer.currentBit + numBits > writer.totalBits {
-		return errors.New(fmt.Sprintf("bitbuf attempt oob write by %d bits", (writer.currentBit + numBits) - writer.totalBits))
+	if writer.currentBit+numBits > writer.totalBits {
+		return errors.New(fmt.Sprintf("bitbuf attempt oob write by %d bits", (writer.currentBit+numBits)-writer.totalBits))
 	}
 	return nil
 }
 
-
 func NewWriter(length int) *Writer {
-	return & Writer{
-		internalBuffer: make([]byte, length + 4),
-		totalBits:	    uint(length * 8) + 32,
+	return &Writer{
+		internalBuffer: make([]byte, length+4),
+		totalBits:      uint(length*8) + 32,
 		currentBit:     0,
 	}
 }

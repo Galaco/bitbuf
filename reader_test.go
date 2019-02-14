@@ -19,7 +19,7 @@ func TestReader_ReadByte(t *testing.T) {
 	sut := NewReader(getTestBytes())
 
 	expected := byte(32)
-	if val,err := sut.ReadByte(); err != nil && val != expected {
+	if val, err := sut.ReadByte(); err != nil && val != expected {
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -36,8 +36,8 @@ func TestReader_ReadBytes(t *testing.T) {
 	sut.ReadFloat32()
 	sut.ReadInt64()
 
-	expected := []byte{84,12,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,12,13,54,1,143,234,5,56,1,2}
-	if val,err := sut.ReadBytes(32); err != nil {
+	expected := []byte{84, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 12, 13, 54, 1, 143, 234, 5, 56, 1, 2}
+	if val, err := sut.ReadBytes(32); err != nil {
 		if err != nil {
 			t.Error(err)
 		}
@@ -57,7 +57,7 @@ func TestReader_ReadFloat32(t *testing.T) {
 	sut.ReadInt16()
 
 	expected := float32(2106.3212345)
-	if val,err := sut.ReadFloat32(); err != nil && val != expected {
+	if val, err := sut.ReadFloat32(); err != nil && val != expected {
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -77,7 +77,7 @@ func TestReader_ReadFloat64(t *testing.T) {
 	sut.ReadUint8()
 
 	expected := float64(-756351.123)
-	if val,err := sut.ReadFloat64(); err != nil && val != expected {
+	if val, err := sut.ReadFloat64(); err != nil && val != expected {
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -98,7 +98,7 @@ func TestReader_ReadInt8(t *testing.T) {
 	sut.ReadFloat64()
 
 	expected := int8(-57)
-	if val,err := sut.ReadInt8(); err != nil && val != expected {
+	if val, err := sut.ReadInt8(); err != nil && val != expected {
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -113,7 +113,7 @@ func TestReader_ReadInt16(t *testing.T) {
 	sut.ReadByte()
 
 	expected := int16(8375)
-	if val,err := sut.ReadInt16(); err != nil && val != expected {
+	if val, err := sut.ReadInt16(); err != nil && val != expected {
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -134,7 +134,7 @@ func TestReader_ReadInt64(t *testing.T) {
 	sut.ReadFloat32()
 
 	expected := int64(5635455352)
-	if val,err := sut.ReadInt64(); err != nil && val != expected {
+	if val, err := sut.ReadInt64(); err != nil && val != expected {
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -169,7 +169,7 @@ func TestReader_ReadUint32(t *testing.T) {
 	sut.ReadInt8()
 
 	expected := uint32(12645123)
-	if val,err := sut.ReadUint32(); err != nil && val != expected {
+	if val, err := sut.ReadUint32(); err != nil && val != expected {
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -182,7 +182,7 @@ func TestReader_ReadUint64(t *testing.T) {
 	t.Skip()
 }
 
-func getTestBytes() []byte{
+func getTestBytes() []byte {
 	return []byte{
 		32,
 		183, 32,
