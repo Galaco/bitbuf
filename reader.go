@@ -1,14 +1,13 @@
 package bitbuf
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"math"
+	"io"
 )
 
+// Reader reads values from a little-endian, least-significant-bit-first bitstream.
 type Reader struct {
-	internalBuffer bytes.Buffer
+	internalBuffer []byte
 	totalBits      uint
 	currentBit     uint
 }
@@ -19,13 +18,18 @@ func (buf *Reader) Size() uint {
 }
 
 // Seek seek to a specific Bit. Not Byte!
+// Seeking outside the buffer moves to the end, so subsequent reads return io.EOF.
 func (buf *Reader) Seek(offset int) {
+	if offset < 0 || uint(offset) > buf.totalBits {
+		buf.currentBit = buf.totalBits
+		return
+	}
 	buf.currentBit = uint(offset)
 }
 
 // Data returns the entire buffer as []byte
 func (buf *Reader) Data() []byte {
-	return buf.internalBuffer.Bytes()
+	return buf.internalBuffer
 }
 
 // BitsRead returns number of bits read
@@ -137,10 +141,12 @@ func (buf *Reader) ReadFloat64() (float64, error) {
 
 // ReadBytes reads X number of consecutive bytes
 func (buf *Reader) ReadBytes(numBytes uint) ([]byte, error) {
-	if err := buf.ensureInBounds(numBytes << 3); err != nil {
-		return nil, err
+	numBits := numBytes << 3
+	if numBits>>3 != numBytes {
+		// Too large to count in bits, so certainly larger than the buffer.
+		numBits = ^uint(0)
 	}
-	return buf.ReadBits(numBytes << 3)
+	return buf.ReadBits(numBits)
 }
 
 // ReadString reads in string data of X length. Underlying implementation same as byte
@@ -164,107 +170,100 @@ func (buf *Reader) ReadString(maxLength uint) (string, error) {
 }
 
 // ReadBits reads a specific number of bits.
+// Bits are packed into bytes least-significant bit first; a trailing partial byte
+// holds the remaining bits in its low bits.
 func (buf *Reader) ReadBits(numBits uint) ([]byte, error) {
-	retVal := make([]byte, int(math.Ceil(float64(numBits)/8)))
-
-	//unsigned char *pOut = (unsigned char*)pOutData;
-	nBitsLeft := numBits
-
-	// align output to dword boundary
-	idx := 0
-
-	// read dwords
-	idx = 0
-	for nBitsLeft >= 32 {
-		retVal[idx], _ = buf.ReadByte()
-		idx++
-		retVal[idx], _ = buf.ReadByte()
-		idx++
-		retVal[idx], _ = buf.ReadByte()
-		idx++
-		retVal[idx], _ = buf.ReadByte()
-		idx++
-
-		nBitsLeft -= 32
+	if err := buf.ensureInBounds(numBits); err != nil {
+		return nil, err
 	}
 
-	// read remaining bytes
-	for nBitsLeft >= 8 {
-		retVal[idx], _ = buf.ReadByte()
-		idx++
-
-		nBitsLeft -= 8
-	}
-
-	// read remaining bits
-	if nBitsLeft > 0 {
-		v, _ := buf.readInternal(nBitsLeft)
+	retVal := make([]byte, (numBits+7)/8)
+	for idx := range retVal {
+		n := numBits - uint(idx)*8
+		if n > 8 {
+			n = 8
+		}
+		// Cannot fail: bounds were checked for the whole read above.
+		v, _ := buf.readInternal(n)
 		retVal[idx] = byte(v)
 	}
 
 	return retVal, nil
 }
 
-// ReadUint32Bits reads a specific number of bits that will be treated as a Uint32
+// ReadUint32Bits reads a specific number of bits (at most 32) that will be treated as a Uint32
 func (buf *Reader) ReadUint32Bits(numBits uint) (uint32, error) {
 	return buf.readInternal(numBits)
 }
 
-// ReadInt32Bits reads a specific number of bits that will be treated as an Int32
+// ReadInt32Bits reads a specific number of bits (at most 32) as a two's complement Int32.
+// As in Source's bf_read::ReadSBitLong, the top bit read is the sign bit:
+// reading 8 bits of 0xC7 returns -57. This reads back values written by WriteSignedBitInt32.
 func (buf *Reader) ReadInt32Bits(numBits uint) (int32, error) {
 	v, err := buf.readInternal(numBits)
-	return int32(v), err
+	if err != nil {
+		return 0, err
+	}
+	// Move the sign bit to bit 31, then shift back arithmetically to sign-extend.
+	// For numBits 0 both shifts are by 32, which yields 0.
+	shift := 32 - numBits
+	return int32(v<<shift) >> shift, nil
 }
 
-// ReadOneBit reads a single bit as a boolean
+// ReadOneBit reads a single bit as a boolean.
+// Reading past the end of the buffer returns false and does not advance.
 func (buf *Reader) ReadOneBit() bool {
-	value := uint8(buf.internalBuffer.Bytes()[buf.currentBit>>3] >> (buf.currentBit & 7))
+	if buf.currentBit >= buf.totalBits {
+		return false
+	}
+	value := buf.internalBuffer[buf.currentBit>>3] >> (buf.currentBit & 7)
 	buf.currentBit++
 	return (value & 1) != 0
 }
 
 func (buf *Reader) readInternal(numBits uint) (uint32, error) {
-	if numBits > 64 {
-		return 0, errors.New("cannot handle more than 64 bits in a single read")
+	if numBits > 32 {
+		return 0, fmt.Errorf("bitbuf: cannot read %d bits into a 32-bit value", numBits)
 	}
-	err := buf.ensureInBounds(numBits)
-	if err != nil {
+	if err := buf.ensureInBounds(numBits); err != nil {
 		return 0, err
 	}
 
-	firstByte := buf.currentBit / 8
-	startBit := (buf.currentBit & 31) % 8
-	//lastBit := buf.currentBit + numBits - 1
-	//wordOffset1 := uint(buf.currentBit >> 5)
-	//wordOffset2 := uint(lastBit >> 5) + 4
+	// A read of up to 32 bits at any bit offset spans at most 5 bytes.
+	// Only touch bytes that are part of the read, so the end of the buffer is safe.
+	firstByte := buf.currentBit >> 3
+	lastByte := (buf.currentBit + numBits + 7) >> 3
+	var word uint64
+	for i := firstByte; i < lastByte; i++ {
+		word |= uint64(buf.internalBuffer[i]) << ((i - firstByte) << 3)
+	}
+
+	word >>= buf.currentBit & 7
 	buf.currentBit += numBits
 
-	bitmask := uint32(2<<(uint(numBits)-1)) - 1
-
-	//dw1 := LoadLittleDWord( (unsigned long* RESTRICT)m_pData, wordOffset1) >> startBit
-	//dw2 := LoadLittleDWord( (unsigned long* RESTRICT)m_pData, wordOffset2) << (32 - startBit)
-	dw1, _ := bytesToUint32(buf.internalBuffer.Bytes()[firstByte : firstByte+4])
-	dw1 = dw1 >> startBit
-	dw2 := uint32(0)
-	if buf.totalBits-buf.currentBit >= 64 {
-		dw2, _ = bytesToUint32(buf.internalBuffer.Bytes()[firstByte+4 : firstByte+8])
-		dw2 = dw2 << (32 - startBit)
-	}
-
-	return (dw1 | dw2) & bitmask, nil
+	return uint32(word & (uint64(1)<<numBits - 1)), nil
 }
 
+// ensureInBounds returns io.EOF if no bits remain, or an error wrapping
+// io.ErrUnexpectedEOF if some, but not enough, bits remain.
+// The position never passes the end, so the subtraction cannot wrap, where
+// currentBit+numBits could for a huge numBits.
 func (buf *Reader) ensureInBounds(numBits uint) error {
-	if buf.currentBit+numBits > buf.totalBits {
-		return fmt.Errorf("bitbuf attempt oob read by %d bits", (buf.currentBit+numBits)-buf.totalBits)
+	remaining := buf.totalBits - buf.currentBit
+	if numBits <= remaining {
+		return nil
 	}
-	return nil
+	if remaining == 0 {
+		return io.EOF
+	}
+	return fmt.Errorf("bitbuf: read of %d bits overruns buffer by %d bits: %w",
+		numBits, numBits-remaining, io.ErrUnexpectedEOF)
 }
 
 // NewReader returns a new Bitbuf reader.
 func NewReader(data []byte) *Reader {
 	return &Reader{
-		internalBuffer: *bytes.NewBuffer(data),
+		internalBuffer: data,
 		totalBits:      uint(len(data) * 8),
 		currentBit:     0,
 	}
