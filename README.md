@@ -1,6 +1,6 @@
 [![GoDoc](https://godoc.org/github.com/Galaco/bitbuf?status.svg)](https://godoc.org/github.com/Galaco/bitbuf)
 [![Go report card](https://goreportcard.com/badge/github.com/galaco/bitbuf)](https://goreportcard.com/badge/github.com/galaco/bitbuf)
-[![Build Status](https://travis-ci.com/Galaco/bitbuf.svg?branch=master)](https://travis-ci.com/Galaco/bitbuf)
+[![CI](https://github.com/Galaco/bitbuf/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Galaco/bitbuf/actions/workflows/ci.yml)
 
 # bitbuf
 
