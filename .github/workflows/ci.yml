@@ -15,8 +15,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 1.18 is the oldest Go that can build the fuzz tests.
-        go: ['1.18', oldstable, stable]
+        # 1.21 is the oldest Go supported by go.mod (min, max, clear, slices).
+        go: ['1.21', oldstable, stable]
     steps:
       - uses: actions/checkout@v7
 
@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [FuzzReader, FuzzRoundTrip]
+        target: [FuzzReader, FuzzRoundTrip, FuzzEncodings]
     steps:
       - uses: actions/checkout@v7
 

@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/galaco/bitbuf"
+	"github.com/galaco/bitbuf/v2"
 	"log"
 )
 
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	buf := bitbuf.NewReader(dataBuffer.Bytes())
-	log.Println(buf.ReadByte())
+	log.Println(buf.ReadUint8())
 	log.Println(buf.ReadInt16())
 	log.Println(buf.ReadFloat32())
 	log.Println(buf.ReadInt64())
@@ -48,4 +48,7 @@ func main() {
 	log.Println(buf.ReadFloat64())
 	log.Println(buf.ReadInt8())
 	log.Println(buf.ReadUint32())
+	if err := buf.Err(); err != nil {
+		log.Fatal(err)
+	}
 }
